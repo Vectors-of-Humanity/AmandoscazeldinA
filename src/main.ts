@@ -115,7 +115,20 @@ export class GameEngine {
             this.gameWon = true;
             const timeTaken = ((performance.now() - this.gameStartTime) / 1000).toFixed(2);
             this.winScreenElement.style.display = 'flex';
-            this.winScreenElement.innerHTML = `<h1>Course Completed!</h1><p>Time: ${timeTaken} seconds</p><button onclick="location.reload()">Play Again</button>`;
+            this.winScreenElement.textContent = '';
+
+            const title = document.createElement('h1');
+            title.textContent = 'Course Completed!';
+            this.winScreenElement.appendChild(title);
+
+            const timeLabel = document.createElement('p');
+            timeLabel.textContent = `Time: ${timeTaken} seconds`;
+            this.winScreenElement.appendChild(timeLabel);
+
+            const replayButton = document.createElement('button');
+            replayButton.textContent = 'Play Again';
+            replayButton.onclick = () => location.reload();
+            this.winScreenElement.appendChild(replayButton);
         }
     }
 
@@ -170,7 +183,7 @@ document.head.appendChild(style);
 
 const ui = document.createElement('div');
 ui.id = 'ui';
-ui.innerHTML = 'Use WASD to move, SPACE to jump.';
+ui.textContent = 'Use WASD to move, SPACE to jump.';
 document.body.appendChild(ui);
 
 const timer = document.createElement('div');
