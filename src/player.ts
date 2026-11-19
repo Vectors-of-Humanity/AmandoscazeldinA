@@ -21,6 +21,18 @@ export class Player {
         space: false
     };
 
+    // Pre-allocated vectors for performance
+    private v3_cameraDir = new THREE.Vector3();
+    private v3_cameraRight = new THREE.Vector3();
+    private v3_up = new THREE.Vector3(0, 1, 0);
+    private v3_moveDir = new THREE.Vector3();
+    private v3_cameraOffset = new THREE.Vector3(0, 5, 10);
+    private v3_playerPos = new THREE.Vector3();
+    private v3_cameraTarget = new THREE.Vector3();
+    private cv3_contactNormal = new CANNON.Vec3();
+    private cv3_up = new CANNON.Vec3(0, 1, 0);
+    private cv3_applyForce = new CANNON.Vec3();
+
     constructor(engine: GameEngine, x: number, y: number, z: number) {
         this.engine = engine;
         this.startPos.set(x, y, z);
@@ -84,8 +96,6 @@ export class Player {
 
     private setupCollision() {
         this.engine.world.addEventListener('postStep', () => {
-            const contactNormal = new CANNON.Vec3();
-            let upAxis = new CANNON.Vec3(0, 1, 0);
             let grounded = false;
 
             for(let i=0; i<this.engine.world.contacts.length; i++){
@@ -99,11 +109,11 @@ export class Player {
                     }
 
                     if(contact.bi.id === this.body.id){
-                        contact.ni.negate(contactNormal);
+                        contact.ni.negate(this.cv3_contactNormal);
                     }else{
-                        contactNormal.copy(contact.ni);
+                        this.cv3_contactNormal.copy(contact.ni);
                     }
-                    if(contactNormal.dot(upAxis) > 0.5){
+                    if(this.cv3_contactNormal.dot(this.cv3_up) > 0.5){
                         grounded = true;
                     }
                 }
@@ -121,34 +131,33 @@ export class Player {
             setTimeout(() => this.respawn(), 1000);
         }
 
-        const cameraDir = new THREE.Vector3();
-        camera.getWorldDirection(cameraDir);
-        cameraDir.y = 0;
-        cameraDir.normalize();
+        camera.getWorldDirection(this.v3_cameraDir);
+        this.v3_cameraDir.y = 0;
+        this.v3_cameraDir.normalize();
 
-        const cameraRight = new THREE.Vector3();
-        cameraRight.crossVectors(cameraDir, new THREE.Vector3(0, 1, 0)).normalize();
+        this.v3_cameraRight.crossVectors(this.v3_cameraDir, this.v3_up).normalize();
 
-        const moveDir = new THREE.Vector3(0, 0, 0);
+        this.v3_moveDir.set(0, 0, 0);
 
-        if (this.keys.w) moveDir.add(cameraDir);
-        if (this.keys.s) moveDir.sub(cameraDir);
-        if (this.keys.a) moveDir.sub(cameraRight);
-        if (this.keys.d) moveDir.add(cameraRight);
+        if (this.keys.w) this.v3_moveDir.add(this.v3_cameraDir);
+        if (this.keys.s) this.v3_moveDir.sub(this.v3_cameraDir);
+        if (this.keys.a) this.v3_moveDir.sub(this.v3_cameraRight);
+        if (this.keys.d) this.v3_moveDir.add(this.v3_cameraRight);
 
-        if (moveDir.length() > 0) {
-            moveDir.normalize();
-            this.body.applyForce(new CANNON.Vec3(moveDir.x * this.speed * 50, 0, moveDir.z * this.speed * 50), this.body.position);
+        if (this.v3_moveDir.length() > 0) {
+            this.v3_moveDir.normalize();
+            this.cv3_applyForce.set(this.v3_moveDir.x * this.speed * 50, 0, this.v3_moveDir.z * this.speed * 50);
+            this.body.applyForce(this.cv3_applyForce, this.body.position);
 
-            const targetRotation = Math.atan2(moveDir.x, moveDir.z);
+            const targetRotation = Math.atan2(this.v3_moveDir.x, this.v3_moveDir.z);
             this.mesh.rotation.y = targetRotation;
         }
 
         // 3rd Person Camera Follow
-        const cameraOffset = new THREE.Vector3(0, 5, 10);
-        const playerPos = new THREE.Vector3(this.body.position.x, this.body.position.y, this.body.position.z);
+        this.v3_playerPos.set(this.body.position.x, this.body.position.y, this.body.position.z);
 
-        camera.position.lerp(playerPos.clone().add(cameraOffset), 0.1);
-        camera.lookAt(playerPos);
+        this.v3_cameraTarget.addVectors(this.v3_playerPos, this.v3_cameraOffset);
+        camera.position.lerp(this.v3_cameraTarget, 0.1);
+        camera.lookAt(this.v3_playerPos);
     }
 }
