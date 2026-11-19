@@ -17,8 +17,7 @@ export class Player {
         w: false,
         a: false,
         s: false,
-        d: false,
-        space: false
+        d: false
     };
 
     constructor(engine: GameEngine, x: number, y: number, z: number) {
